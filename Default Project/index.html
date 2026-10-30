@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Black Orbit - Planet Eater</title>
+<meta name="theme-color" content="#050711">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' fill='%23050d1f' stroke='%238b5cf6' stroke-width='2'/><circle cx='12' cy='5' r='2' fill='%238b5cf6'/></svg>">
+<!-- Required step 2: Playgama Bridge SDK is the FIRST script, loaded normally (not async/defer) -->
+<script src="https://bridge.playgama.com/v2/stable/playgama-bridge.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://bridge.playgama.com">
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Fredoka',sans-serif}
+body{background:#050711;overflow:hidden;touch-action:pan-x pan-y;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100vw;height:100vh}
+#loadingScreen{position:fixed;inset:0;background:radial-gradient(800px 500px at 50% 20%,#1e1b4b 0%,#0f0a1f 30%,#050711 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 0.8s}
+.loading-logo{font-family:'Orbitron',sans-serif;font-size:66px;font-weight:900;background:linear-gradient(90deg,#8b5cf6,#06b6d4,#facc15,#8b5cf6);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gradientShift 6s linear infinite,pulse 4s ease-in-out infinite;text-align:center}
+@keyframes gradientShift{to{background-position:200% center}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-bar{width:280px;height:6px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;margin-top:16px}
+.loading-fill{height:100%;width:0%;background:linear-gradient(90deg,#8b5cf6,#06b6d4);border-radius:99px;transition:width 0.2s}
+.loading-text{color:#64748b;font-size:12px;letter-spacing:2px;margin-top:12px}
+.studio-text{margin-top:28px;text-align:center;opacity:0;animation:fadeIn 1s forwards 0.5s}
+.studio-text div:first-child{color:#475569;font-size:11px;letter-spacing:4px}
+.studio-text div:last-child{font-family:'Orbitron',sans-serif;color:#fff;font-size:18px;letter-spacing:3px;margin-top:4px}
+@keyframes fadeIn{to{opacity:1}}
+#ui{position:absolute;inset:0;pointer-events:none}
+.top{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;z-index:6;overflow:visible}
+.pill{background:rgba(15,23,42,0.94);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:7px 14px;color:#fff;display:flex;align-items:center;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,0.4);font-size:13px}
+.pill b{font-size:17px;font-variant-numeric:tabular-nums}
+#coinPill{color:#facc15}
+#sizeBarWrap{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:360px;max-width:calc(100vw - 180px);background:rgba(15,23,42,0.96);border-radius:20px;padding:10px 14px;border:1px solid rgba(139,92,246,0.2);z-index:9;display:block !important;opacity:1 !important;visibility:visible !important;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+#sizeBar{height:12px;background:#1e293b;border-radius:999px;overflow:hidden}
+#sizeFill{height:100%;width:12%;background:linear-gradient(90deg,#8b5cf6,#06b6d4);transition:width 0.25s}
+.bossBar{position:absolute;top:52px;left:50%;transform:translateX(-50%);width:400px;max-width:90vw;background:rgba(0,0,0,0.55);border:1px solid rgba(239,68,68,0.5);border-radius:14px;padding:8px 12px;display:none;z-index:6}
+.bossBar b{color:#ef4444;font-family:'Orbitron';font-size:11px;letter-spacing:2px}
+.bossHp{height:10px;background:#1f2937;border-radius:99px;overflow:hidden;margin-top:4px}
+.bossHpFill{height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#f97316);transition:width 0.2s}
+#leaderboard{position:absolute;top:56px;right:12px;width:180px;height:180px;background:rgba(15,23,42,0.96);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:10px;z-index:6;pointer-events:none;display:flex;flex-direction:column;transform:scale(1);transform-origin:top right} /* 1:1 scale fixed */
+#lbList{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch} #lbList::-webkit-scrollbar{width:3px} #lbList::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:3px}
+#leaderboard h3{font-family:'Orbitron';font-size:10px;letter-spacing:2px;color:#8b5cf6;margin-bottom:8px;text-align:center}
+.lb-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:10px;margin-bottom:4px;font-size:12px}
+.lb-row.me{background:linear-gradient(90deg,rgba(139,92,246,0.3),rgba(6,182,214,0.2));border:1px solid rgba(139,92,246,0.4)}
+.lb-row.boss{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3)}
+.lb-name{display:flex;align-items:center;gap:6px;overflow:hidden}
+.lb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.lb-score{font-weight:700}
+#minimapWrap{position:absolute;bottom:88px;right:12px;width:140px;height:140px;background:rgba(15,23,42,0.94);border:1px solid rgba(255,255,255,0.15);border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:6;pointer-events:none}
+#minimap{width:100%;height:100%;display:block}
+#minimapLabel{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:8px;letter-spacing:2px;color:#64748b;font-family:'Orbitron'}
+#exitBtn{position:absolute;bottom:16px;left:12px;background:rgba(239,68,68,0.92);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:7px 12px;border-radius:10px;font-size:10px;font-weight:800;letter-spacing:1px;cursor:pointer;pointer-events:auto;z-index:10;box-shadow:0 4px 16px rgba(239,68,68,0.4);backdrop-filter:blur(10px);font-family:'Orbitron'}
+#exitBtn:active{transform:scale(0.95)}
+#exitBtn:hover{background:rgba(239,68,68,1)}
+/* shop must be above end screen */
+#shopOverlay{z-index:35 !important}
+#endOverlay{z-index:25 !important}
+#startOverlay{z-index:30 !important}
+.abilities{position:absolute;left:12px;bottom:88px;display:flex;gap:10px;flex-direction:column;z-index:6}
+.ab{width:58px;height:58px;border-radius:16px;background:rgba(15,23,42,0.95);border:2px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;position:relative;pointer-events:auto;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);touch-action:manipulation}
+.ab .key{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);font-size:9px;background:#000;padding:2px 6px;border-radius:5px;border:1px solid rgba(255,255,255,0.2)}
+.ab .cd{position:absolute;inset:0;background:rgba(0,0,0,0.75);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.overlay{position:absolute;inset:0;background:radial-gradient(1200px 600px at 50% 10%,rgba(139,92,246,0.25),transparent),rgba(3,7,18,0.96);display:flex;align-items:flex-start;justify-content:center;pointer-events:auto;z-index:20;overflow-y:auto;overflow-x:hidden;padding:20px 0;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.card{width:640px;max-width:94vw;background:linear-gradient(180deg,#1e293b,#0f172a);border-radius:28px;padding:22px;border:1px solid rgba(255,255,255,0.12);box-shadow:0 24px 80px rgba(0,0,0,0.6);color:#fff;text-align:center;max-height:none;overflow:visible;margin:auto}
+.card h1{font-family:'Orbitron',sans-serif;font-size:36px;line-height:0.9;margin:8px 0;letter-spacing:-1px}
+.card h1 span{background:linear-gradient(90deg,#8b5cf6,#06b6d4,#facc15);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn{border:0;padding:12px 22px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;transition:0.15s;touch-action:manipulation}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:linear-gradient(90deg,#8b5cf6,#06b6d4);color:#fff;box-shadow:0 8px 24px rgba(139,92,246,0.4)}
+.btn-ghost{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.12)}
+.btn-boss{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;box-shadow:0 8px 24px rgba(239,68,68,0.4)}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.shop{width:840px;max-width:97vw;max-height:none;overflow:visible}
+.tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:14px;padding:4px;gap:4px;margin:12px 0}
+.tab{flex:1;padding:9px;border-radius:10px;border:0;background:transparent;color:#94a3b8;cursor:pointer;font-weight:700;font-size:12px}
+.tab.active{background:#fff;color:#0f172a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;text-align:left;max-height:none;overflow:visible}
+.item{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px}
+.item .price{margin-top:6px;color:#facc15;font-weight:700;font-size:12px}
+.dot{width:34px;height:34px;border-radius:50%;display:inline-block}
+.levelBadge{display:inline-block;background:linear-gradient(90deg,#8b5cf6,#06b6d4);padding:4px 12px;border-radius:99px;font-size:10px;letter-spacing:1px;font-weight:800;margin-bottom:6px}
+.lb-global{margin-top:12px;background:rgba(0,0,0,0.3);border-radius:14px;padding:10px;text-align:left}
+.lb-global h4{font-family:'Orbitron';font-size:10px;letter-spacing:2px;color:#94a3b8;margin-bottom:6px}
+/* ============ v2.1 UPGRADES: LOADING + MENU ============ */
+#loadingScreen .loading-bar{width:320px;height:8px;margin-top:22px}
+.loading-fill{position:relative;box-shadow:0 0 12px rgba(139,92,246,.8)}
+.loading-fill::after{content:'';position:absolute;inset:0;border-radius:99px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.ls-core{position:relative;width:150px;height:150px;margin-bottom:2px}
+.ls-hole{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle at 42% 38%,#241b52 0%,#0a0614 48%,#000 72%);box-shadow:0 0 46px rgba(139,92,246,.55),inset 0 0 32px rgba(139,92,246,.45)}
+.ls-orbit{position:absolute;border:2px solid transparent;border-radius:50%;animation:spin 2.8s linear infinite}
+.ls-orbit.o1{inset:4px;border-top-color:rgba(139,92,246,.8);border-right-color:rgba(139,92,246,.15)}
+.ls-orbit.o2{inset:18px;border-bottom-color:rgba(6,182,214,.75);border-left-color:rgba(6,182,214,.12);animation-duration:2s;animation-direction:reverse}
+.ls-dot{position:absolute;inset:0}
+.ls-dot::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:#a78bfa;box-shadow:0 0 14px #8b5cf6}
+.ls-dot.c::before{background:#22d3ee;box-shadow:0 0 14px #06b6d4}
+.ls-sub{color:#93c5fd;font-size:12px;letter-spacing:7px;margin-top:6px;font-family:'Orbitron',sans-serif}
+#loadingScreen .loading-text{color:#dbe3f4;font-size:12px;letter-spacing:4px;margin-top:14px;font-family:'Orbitron',sans-serif}
+.ls-tip{color:#64748b;font-size:11px;margin-top:10px;min-height:15px;max-width:340px;text-align:center;line-height:1.35}
+.menu-card{position:relative;border:1px solid rgba(139,92,246,.35);box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 70px rgba(139,92,246,.14)}
+.card h1 span{background-size:200% auto;animation:gradientShift 5s linear infinite}
+.menu-eyebrow{font-size:10px;letter-spacing:5px;color:#64748b;margin-bottom:2px}
+.menu-tag{color:#94a3b8;font-size:13px;margin:6px 0 2px}
+.stats-row{display:flex;gap:8px;justify-content:center;margin:14px 0 6px;flex-wrap:wrap}
+.stat{background:rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:8px 14px;min-width:84px}
+.stat b{display:block;font-size:15px}
+.stat span{font-size:9px;letter-spacing:2px;color:#64748b}
+.btn-big{font-size:16px;padding:14px 32px}
+.floatp{position:absolute;border-radius:50%;opacity:.6;animation:floaty 9s ease-in-out infinite;pointer-events:none}
+.fp1{width:26px;height:26px;left:10%;top:16%;background:radial-gradient(circle at 32% 30%,#7dd3fc,#0369a1);animation-duration:8s}
+.fp2{width:16px;height:16px;right:12%;top:22%;background:radial-gradient(circle at 32% 30%,#fda4af,#9f1239);animation-duration:11s;animation-delay:1s}
+.fp3{width:38px;height:38px;right:8%;bottom:18%;background:radial-gradient(circle at 32% 30%,#fcd34d,#92400e);animation-duration:13s;animation-delay:2s}
+.fp4{width:20px;height:20px;left:18%;bottom:24%;background:radial-gradient(circle at 32% 30%,#a5b4fc,#3730a3);animation-duration:10s;animation-delay:.6s}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-24px) rotate(8deg)}}
+.ab.locked::after{content:'🔒';position:absolute;top:-8px;right:-8px;font-size:12px;filter:drop-shadow(0 0 4px rgba(0,0,0,.8))}
+@keyframes fillPulse{0%{filter:brightness(1)}35%{filter:brightness(2)}100%{filter:brightness(1)}}
+#sizeFill.pulse{animation:fillPulse .45s ease}
+
+
+/* ===== v2.2 ENGAGEMENT UI ===== */
+.btn-ad{background:linear-gradient(90deg,#f59e0b,#ef4444);color:#fff;box-shadow:0 8px 24px rgba(245,158,11,.35)}
+.btn-ad:disabled{opacity:.5;cursor:default;filter:grayscale(.4)}
+.mission{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:6px}
+.mission .mi{font-size:18px}
+.mission .mt{flex:1;text-align:left;min-width:0}
+.mission .mt b{display:block;font-size:12px}
+.mission .mp{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:4px}
+.mission .mpf{height:100%;background:linear-gradient(90deg,#8b5cf6,#06b6d4);width:0;border-radius:99px;transition:width .3s}
+.mission .mr{font-size:11px;color:#facc15;font-weight:800;flex-shrink:0;white-space:nowrap}
+.mission.wait{opacity:.75}
+.mission.done .mr{color:#22c55e}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(15,23,42,.97);border:1px solid rgba(139,92,246,.45);color:#fff;padding:10px 18px;border-radius:14px;font-size:13px;font-weight:700;z-index:60;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;max-width:80vw;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+.toast small{display:block;font-weight:400;color:#94a3b8;font-size:10px;margin-top:2px}
+#menuMeta{display:flex;gap:8px;justify-content:center;margin-top:8px;font-size:10px;color:#64748b;letter-spacing:1px;flex-wrap:wrap}
+.chipMini{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);padding:4px 10px;border-radius:99px}
+#reviveOverlay .card{max-width:420px}
+</style>
+</head>
+
+<body>
+<div id="loadingScreen">
+  <div class="ls-core"><div class="ls-hole"></div><div class="ls-orbit o1"><span class="ls-dot"></span></div><div class="ls-orbit o2"><span class="ls-dot c"></span></div></div>
+  <div class="loading-logo">BLACK ORBIT</div>
+  <div class="ls-sub">PLANET EATER</div>
+  <div class="loading-bar"><div class="loading-fill" id="loadFill"></div></div>
+  <div class="loading-text" id="loadText">LOADING 0%</div>
+  <div class="ls-tip" id="loadTip">💡 TIP: SPACE = speed boost • Q = vacuum blast</div>
+  <div class="studio-text"><div>MADE BY</div><div>MARS STUDIO</div></div>
+</div>
+
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="top">
+    <div class="pill">🏆 <b id="score">0</b></div>
+    <div class="pill">⏱️ <b id="timer">02:00</b></div>
+    <div class="pill" id="coinPill">🪙 <b id="coins">0</b></div>
+    <div class="pill" style="font-size:11px">Lv <b id="level">1</b> • <span id="zoomTxt" style="color:#94a3b8">100%</span></div>
+  </div>
+  <div class="bossBar" id="bossBar"><div style="display:flex;justify-content:space-between"><b>👹 BOSS BLACK HOLE</b><b id="bossPct">100%</b></div><div class="bossHp"><div class="bossHpFill" id="bossHp"></div></div></div>
+  <div id="leaderboard"><h3>🏆 LEADERBOARD</h3><div id="lbList"></div></div>
+  <div id="minimapWrap"><canvas id="minimap" width="140" height="140"></canvas><div id="minimapLabel">MAP</div></div>
+  <div id="sizeBarWrap">
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-bottom:5px;letter-spacing:1px"><span>🕳️ BLACK HOLE SIZE</span><span id="sizeTxt" style="color:#fff">Lv 1</span></div>
+    <div id="sizeBar"><div id="sizeFill"></div></div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:#64748b"><span>Zoom: <b id="zoomStable" style="color:#8b5cf6">100%</b></span><span>Next: <b id="nextLv" style="color:#06b6d4">2 buildings</b></span></div>
+  </div>
+  <div class="abilities" id="abilities"></div>
+  <button id="exitBtn" onclick="exitToMenu()" style="display:none" title="Exit to Main Menu">✕ EXIT</button>
+</div>
+
+<div class="overlay" id="startOverlay" style="display:none">
+  <div class="floatp fp1"></div><div class="floatp fp2"></div><div class="floatp fp3"></div><div class="floatp fp4"></div>
+  <div class="card menu-card">
+    <div class="levelBadge">MARS STUDIO PRESENTS</div>
+    <div class="menu-eyebrow">A DEEP-SPACE DEVOURING CLASSIC</div>
+    <div style="font-size:12px;letter-spacing:6px;color:#8b5cf6;font-family:Orbitron">BLACK ORBIT</div>
+    <h1><span>PLANET</span><br>EATER</h1>
+    <p class="menu-tag">Grow your black hole, swallow whole cities and battle rival holes before time runs out.</p>
+    <div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:8px 10px;margin:12px 0;display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px;font-size:10px;color:#64748b"><span>🖱️ DRAG</span><span>⌨️ WASD</span><span>⚡ SPACE BOOST</span><span>🌪️ Q VACUUM</span></div>
+    <div class="stats-row">
+      <div class="stat"><b style="color:#facc15"><span id="menuCoins">0</span></b><span>🪙 COINS</span></div>
+      <div class="stat"><b style="color:#fff"><span id="bestScore">0</span></b><span>🏆 BEST</span></div>
+      <div class="stat"><b style="color:#8b5cf6"><span id="menuLevel">1</span></b><span>🕳️ LEVEL</span></div>
+      <div class="stat"><b style="color:#06b6d4"><span id="menuSkin">Classic</span></b><span>🎨 SKIN</span></div>
+    </div>
+    <div class="row">
+      <button class="btn btn-primary btn-big" id="btnPlay" onclick="startGame()">▶ PLAY</button>
+      <button class="btn btn-ghost" id="btnShop" onclick="openShop()">🛒 SHOP</button>
+      <button class="btn btn-boss" id="btnBoss" onclick="startBoss()">👹 BOSS</button>
+    </div>
+    
+    <div class="row" style="margin-top:10px">
+      <button class="btn btn-ad" id="btnGift" onclick="watchGift()">🎁 WATCH • +150 🪙</button>
+      <button class="btn btn-ghost" id="btnDaily" onclick="claimDaily()">🎒 DAILY GIFT</button>
+      <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()">🔊 SOUND</button>
+    </div>
+    <div class="lb-global" id="missionsBox" style="text-align:left"></div>
+    <div id="menuMeta"><span class="chipMini">🏆 <span id="achvCount">0/6</span></span><span class="chipMini">🔥 <span id="dailyStreak">0</span>-DAY STREAK</span><span class="chipMini">🕳️ LV <span id="metaLevel">1</span></span></div>
+    <div class="lb-global" id="globalLB"></div>
+    <div style="margin-top:10px;color:#475569;font-size:10px;letter-spacing:2px">MADE BY MARS STUDIO • PLAYGAMA READY • v2.2</div>
+  </div>
+</div>
+
+<div class="overlay" id="shopOverlay" style="display:none">
+  <div class="card shop">
+    <h1 style="font-size:24px;font-family:Orbitron">SHOP 🪙 <span id="shopCoins" style="color:#facc15">0</span></h1>
+    <div class="tabs"><button class="tab active" id="tabAb" onclick="switchTab('ability')">ABILITIES</button><button class="tab" id="tabSkin" onclick="switchTab('skin')">HOLE SKINS</button></div>
+    <div class="grid" id="shopGrid"></div>
+    <div class="row" style="margin-top:12px"><button class="btn btn-ghost" onclick="closeShop()">✕ CLOSE</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="endOverlay" style="display:none">
+  <div class="card">
+    <h1 id="endTitle" style="font-family:Orbitron">TIME'S UP!</h1>
+    <div style="font-size:52px;font-weight:800" id="endScore">0</div>
+    <div style="color:#94a3b8;font-size:13px;margin-top:4px">Ate <b id="endCount" style="color:#fff">0</b> • <b id="endCoins" style="color:#facc15">0</b> coins • <b id="endAI" style="color:#8b5cf6">0</b> holes <span id="endBossText"></span></div>
+    <div id="endLb" class="lb-global"></div>
+    <div class="row"><button class="btn btn-primary" onclick="startGame()">🔁 AGAIN</button><button class="btn btn-ghost" onclick="openShop()">🛒 SHOP</button><button class="btn btn-boss" id="bossBtn2" onclick="startBoss()">👹 BOSS</button><button class="btn btn-ghost" style="background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.4)" onclick="exitToMenu()">✕ EXIT TO MENU</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn btn-ad" id="btnDouble" onclick="watchDouble()">🎁 WATCH AD • 2x COINS</button></div>
+    <div style="margin-top:8px;font-size:10px;color:#475569;letter-spacing:2px">BLACK ORBIT • MARS STUDIO • v2.2</div>
+  </div>
+</div>
+
+
+<div class="overlay" id="reviveOverlay" style="display:none;z-index:40!important">
+  <div class="card">
+    <div class="levelBadge" style="background:linear-gradient(90deg,#ef4444,#f97316)">ONE SECOND CHANCE</div>
+    <h1 style="font-family:Orbitron">YOU GOT EATEN!</h1>
+    <p style="color:#94a3b8;font-size:13px">Watch a short ad to respawn with <b style="color:#22d3ee">+10s</b> and keep your run going. Your score <b id="reviveScore" style="color:#fff">0</b> stays safe.</p>
+    <div class="row">
+      <button class="btn btn-ad" id="btnRevive" onclick="watchRevive()">🎮 CONTINUE • WATCH</button>
+      <button class="btn btn-ghost" onclick="declineRevive()">NO THANKS</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="js/game.js" defer></script>
+</body>
+</html>

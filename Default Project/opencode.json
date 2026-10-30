@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playgama-developer-console": {
+      "type": "remote",
+      "url": "https://developer.playgama.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer pgm_oat_PVTTL6UZCFOIAWJXuY-NnHMJ0D8Aptb_eowFWyNz9Fk"
+      }
+    }
+  }
+}

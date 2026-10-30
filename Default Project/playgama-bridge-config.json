@@ -1,0 +1,39 @@
+{
+  "advertisement": {
+    "minimumDelayBetweenInterstitial": 60,
+    "interstitial": {
+      "disable": false,
+      "preloadOnStart": "game_over",
+      "placementFallback": "game_over",
+      "placements": [
+        {
+          "id": "game_over"
+        },
+        {
+          "id": "return_menu"
+        }
+      ]
+    },
+    "rewarded": {
+      "disable": false,
+      "preloadOnStart": "gift",
+      "placementFallback": "gift",
+      "placements": [
+        {
+          "id": "gift"
+        },
+        {
+          "id": "double_coins"
+        },
+        {
+          "id": "revive"
+        }
+      ]
+    }
+  },
+  "leaderboards": [
+    {
+      "id": "black_orbit_best"
+    }
+  ]
+}
