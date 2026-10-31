@@ -75,7 +75,8 @@ function showInterstitial(placement){ if(!adAvailable('interstitial')) return; t
 function showRewarded(placement,cb){
  if(!adAvailable('rewarded')){ cb&&cb(false); return; }
  BOOT.rewardedOk=false; BOOT.rewardedCb=cb;
- try{ bridge.advertisement.showRewarded(placement); setTimeout(()=>{ if(BOOT.rewardedCb===cb){ BOOT.rewardedCb=null; cb&&cb(false); } },45000); }
+ try{ bridge.advertisement.showRewarded(placement); setTimeout(()=>{ if(BOOT.rewardedCb===cb){ BOOT.rewardedCb=null; // BUG FIX: if the player already earned the reward but no 'closed' event arrived, keep it
+   const ok=BOOT.rewardedOk; BOOT.rewardedOk=false; cb&&cb(ok); } },45000); }
  catch(e){ BOOT.rewardedCb=null; cb&&cb(false); }
 }
 function wireAdEvents(){
@@ -237,7 +238,7 @@ function initGame(isBoss){
  document.getElementById('exitBtn').style.display='block';
  document.getElementById('bossHp').style.width='100%';
  document.getElementById('bossPct').textContent='100%';
- if(isBoss) trackMission('boss',1);
+ // BUG FIX: 'boss' mission must count on DEFEAT, not on starting the boss run
  platformMsg('level_started',{world:isBoss?'boss_hunt':'planet_city',level:'1'});
  buildAbilities();
  rafId=requestAnimationFrame(loop);
@@ -429,7 +430,7 @@ function update(dt){
    if(dToPlayer>80){ let ang=Math.atan2(game.hole.y-b.y,game.hole.x-b.x); b.vx+=Math.cos(ang)*120*dt; b.vy+=Math.sin(ang)*120*dt; }
    b.vx*=0.92; b.vy*=0.92; b.x+=b.vx*dt; b.y+=b.vy*dt;
    b.x=Math.max(-mapClamp,Math.min(mapClamp,b.x)); b.y=Math.max(-mapClamp,Math.min(mapClamp,b.y));
-   for(let o of game.objs){ if(!o.alive) continue; if(Math.hypot(o.x-b.x,o.y-b.y)<b.r*1.1 && o.baseR<=b.r*1.1){ o.alive=false; b.targetR+=o.baseR*0.04; } }
+   for(let o of game.objs){ if(!o.alive) continue; if(Math.hypot(o.x-b.x,o.y-b.y)<b.r*1.1 && o.baseR<=b.r*1.1){ o.alive=false; b.targetR=Math.min(145,b.targetR+o.baseR*0.04); } } // BUG FIX: cap boss growth so the fight stays winnable
    b.r+=(b.targetR-b.r)*0.08;
    if(b.attackCd<=0){ b.attackCd=4+Math.random()*2; game.rings.push({x:b.x,y:b.y,r:20,life:1,maxR:360,color:'#ef4444'}); }
    if(game.hole.r>b.r*0.85 && dToPlayer<b.r*1.6){
@@ -441,6 +442,7 @@ function update(dt){
      game.hole.targetR=Math.min(140, game.hole.targetR+0.04);
      if(b.hp<=0){
        b.alive=false; game.score+=1000; game.coinsEarned+=100*(game.hasDouble?2:1); game.shake=28;
+       trackMission('boss',1); // BUG FIX: count boss mission on actual defeat
        for(let i=0;i<80;i++) game.particles.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*700,vy:(Math.random()-0.5)*700,life:1,color:'#ef4444',size:6});
        spawnFloat(b.x,b.y,'BOSS DEFEATED! +1000', '#ef4444');
        storage.level=Math.max(storage.level,2);
@@ -631,7 +633,7 @@ function updateLeaderboard(){
 }
 
 function drawMinimap(){
- const size=140; const mapSize=game.isBoss?2800:2400;
+ const size=140; const mapSize=game.isBoss?4800:4600; // BUG FIX: was half the real map width, shifting every blip off-center
  miniCtx.clearRect(0,0,size,size);
  miniCtx.fillStyle='#0f172a'; miniCtx.fillRect(0,0,size,size);
  miniCtx.strokeStyle='rgba(255,255,255,0.06)'; miniCtx.lineWidth=0.5;
@@ -818,8 +820,12 @@ function exitToMenu(){
  game.zoom=1.0;
  game.targetZoom=1.0;
  try{
-  storage.coins=storage.coins+(game.coinsEarned||0);
-  if(game.score>storage.best) storage.best=game.score;
+  // BUG FIX: only bank rewards if this run never reached endGame (early quit); otherwise they were already added
+  if(!game.coinsBanked){
+   storage.coins=storage.coins+(game.coinsEarned||0);
+   if(game.score>storage.best) storage.best=game.score;
+   game.coinsBanked=true;
+  }
  }catch(e){}
  platformMsg('level_paused');
  showMenu();
@@ -832,6 +838,7 @@ function endGame(title){
  platformMsg(title&&title.indexOf('DEFEATED')>-1?'level_completed':(title&&title.indexOf('EATEN')>-1||title&&title.indexOf('ESCAPED')>-1?'level_failed':'level_completed'),{world:game.isBoss?'boss_hunt':'planet_city',level:String(game.level||1)});
  if(game.score>storage.best) storage.best=game.score;
  storage.coins=storage.coins+game.coinsEarned;
+ game.coinsBanked=true; // BUG FIX: mark coins as banked so exitToMenu can't double-add them
  let lb=storage.lb;
  lb.push({score:game.score,date:new Date().toLocaleDateString('en-US'),coins:game.coinsEarned,ai:game.aiEaten,boss:game.boss&&!game.boss.alive?1:0});
  lb.sort((a,b)=>b.score-a.score);
@@ -867,8 +874,9 @@ function renderGlobalLB(isEnd){
  let title=isEnd?'🏆 YOUR BEST SCORES':'🌍 LEADERBOARD (LOCAL)';
  let html=`<h4>${title}</h4>`;
  lb.forEach((e,i)=>{
-   let rank=['🥇','🥈','🥉','4.','5.'][i];
-   html+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.05)"><span>${rank} ${e.score.toLocaleString('en-US')} pts • ${e.coins||0} coins</span><span style="color:#64748b;font-size:10px">${e.date||''}</span></div>`;
+   // BUG FIX: coerce legacy saves safely (score/coins may come back malformed)
+   const sc=(+e.score||0).toLocaleString('en-US'); let rank=['🥇','🥈','🥉','4.','5.'][i];
+   html+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.05)"><span>${rank} ${sc} pts • ${+e.coins||0} coins</span><span style="color:#64748b;font-size:10px">${e.date||''}</span></div>`;
  });
  return html;
 }
@@ -896,9 +904,10 @@ function applyLOC(){
 
 // ---- daily gift / streak ----
 const DAILY_REWARDS=[50,100,150,200,300,500];
-function dayString(){ try{ return new Date().toISOString().slice(0,10); }catch(e){ return ''; } }
+// BUG FIX: use the same local-calendar date everywhere (old mix of UTC + timezone-shifted UTC broke streaks)
+function dayString(){ try{ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }catch(e){ return ''; } }
 function isYesterday(str){
- try{ if(!str) return false; const y=new Date(); y.setDate(y.getDate()-1); return String(str)===new Date(y.getTime()-y.getTimezoneOffset()*60000).toISOString().slice(0,10); }catch(e){ return false; }
+ try{ if(!str) return false; const y=new Date(); y.setDate(y.getDate()-1); const p=n=>String(n).padStart(2,'0'); return String(str)===(y.getFullYear()+'-'+p(y.getMonth()+1)+'-'+p(y.getDate())); }catch(e){ return false; }
 }
 function updateDailyBtn(){
  const el=document.getElementById('btnDaily'); if(!el) return;
@@ -950,7 +959,8 @@ function trackMission(stat,val){
   let changed=false;
   saveState.missions.list.forEach(m=>{
    const def=missionDef(m.id); if(!def||def.stat!==stat||m.claimed||(+m.prog||0)>=def.goal) return;
-   if(stat==='level'||stat==='score'||stat==='coins') m.prog=Math.max(+m.prog||0,+val||0);
+   // BUG FIX: 'coins' should accumulate across runs (banking is cumulative); level/score use best-so-far
+   if(stat==='level'||stat==='score') m.prog=Math.max(+m.prog||0,+val||0);
    else m.prog=(+m.prog||0)+(+val||0);
    if(m.prog>=def.goal){ m.prog=def.goal; toast('🎯 MISSION READY!','Claim your '+def.reward+' 🪙 in the menu'); sfx('unlock'); }
    changed=true;
@@ -1019,11 +1029,11 @@ function checkAchievements(){
 function offerRevive(title){
  if(BOOT.forcedPause) return;
  game.reviveTitle=title||'EATEN!';
+ sfx('fail'); // BUG FIX: play the sound before freezing (mutedNow() blocks sound while forcedPause)
  BOOT.forcedPause=true; // freeze world while the offer is up
  let rs=document.getElementById('reviveScore'); if(rs) rs.textContent=(game.score||0).toLocaleString('en-US');
  let br=document.getElementById('btnRevive'); if(br) br.textContent=T('revive');
  let rv=document.getElementById('reviveOverlay'); if(rv) rv.style.display='flex';
- sfx('fail');
 }
 function reviveNow(){
  try{
@@ -1204,7 +1214,7 @@ function renderShop(){ try{
      div.innerHTML=`<div style="font-size:24px">${ab.icon}</div><div style="font-weight:700;margin-top:4px;font-size:13px">${ab.name}</div><div style="font-size:10px;color:#94a3b8">${ab.desc}</div><div class="price">${owned?'✅ Owned':'🪙 '+ab.price.toLocaleString('en-US')}</div>`;
      if(!owned){
        let btn=document.createElement('button'); btn.className='btn btn-primary'; btn.style.marginTop='8px'; btn.style.width='100%'; btn.style.padding='8px'; btn.textContent='BUY';
-       btn.addEventListener('click',()=>{ if(storage.coins>=ab.price){ storage.coins=storage.coins-ab.price; let arr=storage.abs; arr.push(ab.id); storage.abs=arr; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); }});
+       btn.addEventListener('click',()=>{ if(storage.coins>=ab.price){ storage.coins=storage.coins-ab.price; let arr=storage.abs; arr.push(ab.id); storage.abs=arr; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); } else toast('❌ Not enough coins','Need 🪙 '+(ab.price-storage.coins).toLocaleString('en-US')+' more'); });
        div.appendChild(btn);
      }
      grid.appendChild(div);
@@ -1217,7 +1227,7 @@ function renderShop(){ try{
      let btn=document.createElement('button'); btn.className='btn '+(selected?'btn-primary':'btn-ghost'); btn.style.marginTop='10px'; btn.style.width='100%'; btn.style.padding='8px'; btn.style.fontSize='12px';
      if(!owned){
        btn.textContent='BUY';
-       btn.addEventListener('click',()=>{ if(storage.coins>=sk.price){ storage.coins-=sk.price; let arr=storage.skins; arr.push(sk.id); storage.skins=arr; storage.skin=sk.id; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); let ms=document.getElementById('menuSkin'); if(ms) ms.textContent=sk.name; }});
+       btn.addEventListener('click',()=>{ if(storage.coins>=sk.price){ storage.coins-=sk.price; let arr=storage.skins; arr.push(sk.id); storage.skins=arr; storage.skin=sk.id; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); let ms=document.getElementById('menuSkin'); if(ms) ms.textContent=sk.name; } else toast('❌ Not enough coins','Need 🪙 '+(sk.price-storage.coins).toLocaleString('en-US')+' more'); });
      } else {
        btn.textContent=selected?'SELECTED':'SELECT';
        btn.addEventListener('click',()=>{ storage.skin=sk.id; renderShop(); let ms=document.getElementById('menuSkin'); if(ms) ms.textContent=sk.name; });
@@ -1233,12 +1243,13 @@ window.addEventListener('mousemove',(e)=>{game.mouse.x=e.clientX; game.mouse.y=e
 window.addEventListener('touchmove',(e)=>{ if(game.running){ e.preventDefault(); game.mouse.x=e.touches[0].clientX; game.mouse.y=e.touches[0].clientY; }},{passive:false});
 window.addEventListener('touchstart',(e)=>{ if(e.touches[0]){ game.mouse.x=e.touches[0].clientX; game.mouse.y=e.touches[0].clientY; }},{passive:false});
 window.addEventListener('keydown',(e)=>{
- game.keys[e.key]=true;
+ // BUG FIX: normalize to lowercase so W/A/S/D with Shift or CapsLock still move the hole
+ const k=typeof e.key==='string'?e.key.toLowerCase():e.key; game.keys[k]=true;
  if(e.code==='Space'){ e.preventDefault(); activateSpeed(); }
- if(e.key.toLowerCase()==='q'){ if(game.running) triggerVacuum(); }
+ if(k==='q'){ if(game.running) triggerVacuum(); }
  if(e.key==='Escape'){ if(game.running) exitToMenu(); }
 });
-window.addEventListener('keyup',(e)=>{game.keys[e.key]=false;});
+window.addEventListener('keyup',(e)=>{ const k=typeof e.key==='string'?e.key.toLowerCase():e.key; game.keys[k]=false;});
 addEventListener('blur',()=>{ game.keys={}; });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) game.keys={}; });
 

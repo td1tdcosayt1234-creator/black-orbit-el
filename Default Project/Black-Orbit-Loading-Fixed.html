@@ -503,7 +503,7 @@ function update(dt){
    if(dToPlayer>80){ let ang=Math.atan2(game.hole.y-b.y,game.hole.x-b.x); b.vx+=Math.cos(ang)*120*dt; b.vy+=Math.sin(ang)*120*dt; }
    b.vx*=0.92; b.vy*=0.92; b.x+=b.vx*dt; b.y+=b.vy*dt;
    b.x=Math.max(-mapClamp,Math.min(mapClamp,b.x)); b.y=Math.max(-mapClamp,Math.min(mapClamp,b.y));
-   for(let o of game.objs){ if(!o.alive) continue; if(Math.hypot(o.x-b.x,o.y-b.y)<b.r*1.1 && o.baseR<=b.r*1.1){ o.alive=false; b.targetR+=o.baseR*0.04; } }
+   for(let o of game.objs){ if(!o.alive) continue; if(Math.hypot(o.x-b.x,o.y-b.y)<b.r*1.1 && o.baseR<=b.r*1.1){ o.alive=false; b.targetR=Math.min(145,b.targetR+o.baseR*0.04); } } // BUG FIX: cap boss growth so the fight stays winnable
    b.r+=(b.targetR-b.r)*0.08;
    if(b.attackCd<=0){ b.attackCd=4+Math.random()*2; game.rings.push({x:b.x,y:b.y,r:20,life:1,maxR:360,color:'#ef4444'}); }
    if(game.hole.r>b.r*0.85 && dToPlayer<b.r*1.6){
@@ -699,7 +699,7 @@ function updateLeaderboard(){
 }
 
 function drawMinimap(){
- const size=140; const mapSize=game.isBoss?2800:2400;
+ const size=140; const mapSize=game.isBoss?4800:4600; // BUG FIX: was half the real map width, shifting every blip off-center
  miniCtx.clearRect(0,0,size,size);
  miniCtx.fillStyle='#0f172a'; miniCtx.fillRect(0,0,size,size);
  miniCtx.strokeStyle='rgba(255,255,255,0.06)'; miniCtx.lineWidth=0.5;
@@ -881,8 +881,12 @@ function exitToMenu(){
  game.targetZoom=1.0;
  if(cgSDK&&cgSDK.gameplay){ try{ cgSDK.gameplay.stop(); }catch(e){} }
  try{
-  storage.coins=storage.coins+(game.coinsEarned||0);
-  if(game.score>storage.best) storage.best=game.score;
+  // BUG FIX: only bank rewards if this run never reached endGame (early quit); otherwise already added
+  if(!game.coinsBanked){
+   storage.coins=storage.coins+(game.coinsEarned||0);
+   if(game.score>storage.best) storage.best=game.score;
+   game.coinsBanked=true;
+  }
  }catch(e){}
  showMenu();
 }
@@ -893,6 +897,7 @@ function endGame(title){
  if(cgSDK&&cgSDK.gameplay){ try{ cgSDK.gameplay.stop(); }catch(e){} }
  if(game.score>storage.best) storage.best=game.score;
  storage.coins=storage.coins+game.coinsEarned;
+ game.coinsBanked=true; // BUG FIX: mark coins as banked so exitToMenu can't double-add them
  let lb=storage.lb;
  lb.push({score:game.score,date:new Date().toLocaleDateString('en-US'),coins:game.coinsEarned,ai:game.aiEaten,boss:game.boss&&!game.boss.alive?1:0});
  lb.sort((a,b)=>b.score-a.score);
@@ -1011,7 +1016,7 @@ function renderShop(){ try{
      div.innerHTML=`<div style="font-size:24px">${ab.icon}</div><div style="font-weight:700;margin-top:4px;font-size:13px">${ab.name}</div><div style="font-size:10px;color:#94a3b8">${ab.desc}</div><div class="price">${owned?'✅ Owned':'🪙 '+ab.price.toLocaleString('en-US')}</div>`;
      if(!owned){
        let btn=document.createElement('button'); btn.className='btn btn-primary'; btn.style.marginTop='8px'; btn.style.width='100%'; btn.style.padding='8px'; btn.textContent='BUY';
-       btn.addEventListener('click',()=>{ if(storage.coins>=ab.price){ storage.coins=storage.coins-ab.price; let arr=storage.abs; arr.push(ab.id); storage.abs=arr; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); }});
+       btn.addEventListener('click',()=>{ if(storage.coins>=ab.price){ storage.coins=storage.coins-ab.price; let arr=storage.abs; arr.push(ab.id); storage.abs=arr; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); } else toast('❌ Not enough coins','Need 🪙 '+(ab.price-storage.coins).toLocaleString('en-US')+' more'); });
        div.appendChild(btn);
      }
      grid.appendChild(div);
@@ -1024,7 +1029,7 @@ function renderShop(){ try{
      let btn=document.createElement('button'); btn.className='btn '+(selected?'btn-primary':'btn-ghost'); btn.style.marginTop='10px'; btn.style.width='100%'; btn.style.padding='8px'; btn.style.fontSize='12px';
      if(!owned){
        btn.textContent='BUY';
-       btn.addEventListener('click',()=>{ if(storage.coins>=sk.price){ storage.coins-=sk.price; let arr=storage.skins; arr.push(sk.id); storage.skins=arr; storage.skin=sk.id; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); let ms=document.getElementById('menuSkin'); if(ms) ms.textContent=sk.name; }});
+       btn.addEventListener('click',()=>{ if(storage.coins>=sk.price){ storage.coins-=sk.price; let arr=storage.skins; arr.push(sk.id); storage.skins=arr; storage.skin=sk.id; renderShop(); let sc=document.getElementById('shopCoins'); if(sc) sc.textContent=storage.coins.toLocaleString('en-US'); let mc=document.getElementById('menuCoins'); if(mc) mc.textContent=storage.coins.toLocaleString('en-US'); let ms=document.getElementById('menuSkin'); if(ms) ms.textContent=sk.name; } else toast('❌ Not enough coins','Need 🪙 '+(sk.price-storage.coins).toLocaleString('en-US')+' more'); });
      } else {
        btn.textContent=selected?'SELECTED':'SELECT';
        btn.addEventListener('click',()=>{ storage.skin=sk.id; renderShop(); let ms=document.getElementById('menuSkin'); if(ms) ms.textContent=sk.name; });
@@ -1040,12 +1045,13 @@ window.addEventListener('mousemove',(e)=>{game.mouse.x=e.clientX; game.mouse.y=e
 window.addEventListener('touchmove',(e)=>{ if(game.running){ e.preventDefault(); game.mouse.x=e.touches[0].clientX; game.mouse.y=e.touches[0].clientY; }},{passive:false});
 window.addEventListener('touchstart',(e)=>{ if(e.touches[0]){ game.mouse.x=e.touches[0].clientX; game.mouse.y=e.touches[0].clientY; }},{passive:false});
 window.addEventListener('keydown',(e)=>{
- game.keys[e.key]=true;
+ // BUG FIX: normalize to lowercase so W/A/S/D with Shift or CapsLock still move the hole
+ const k=typeof e.key==='string'?e.key.toLowerCase():e.key; game.keys[k]=true;
  if(e.code==='Space'){ e.preventDefault(); activateSpeed(); }
- if(e.key.toLowerCase()==='q'){ if(game.running) triggerVacuum(); }
+ if(k==='q'){ if(game.running) triggerVacuum(); }
  if(e.key==='Escape'){ if(game.running) exitToMenu(); }
 });
-window.addEventListener('keyup',(e)=>{game.keys[e.key]=false;});
+window.addEventListener('keyup',(e)=>{ const k=typeof e.key==='string'?e.key.toLowerCase():e.key; game.keys[k]=false;});
 addEventListener('blur',()=>{ game.keys={}; });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) game.keys={}; });
 
