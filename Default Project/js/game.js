@@ -444,9 +444,9 @@ function update(dt){
   if(game.keys['d']||game.keys['ArrowRight']) ix=1;
   if(ix||iy){ let l=Math.hypot(ix,iy)||1; ix/=l; iy/=l; mx=game.hole.x+ix*260; my=game.hole.y+iy*260; }
   let dx=mx-game.hole.x, dy=my-game.hole.y, dist=Math.hypot(dx,dy);
-  let speed=1100*(game.speedBoost>0?(game.speedMult||1.25):1); // BUG FIX: 2.5x faster movement (440->1100)
-  if(dist>5){ game.hole.vx+=dx/dist*speed*dt*8.5; game.hole.vy+=dy/dist*speed*dt*8.5; } // BUG FIX: 2x faster acceleration (4.2->8.5)
-  game.hole.vx*=0.92; game.hole.vy*=0.92; // BUG FIX: less friction for smoother movement (0.88->0.92)
+  let speed=650*(game.speedBoost>0?(game.speedMult||1.25):1); // BALANCED: Comfortable speed (1100->650)
+  if(dist>5){ game.hole.vx+=dx/dist*speed*dt*5.5; game.hole.vy+=dy/dist*speed*dt*5.5; } // BALANCED: Smooth acceleration (8.5->5.5)
+  game.hole.vx*=0.90; game.hole.vy*=0.90; // BALANCED: More control with higher friction (0.92->0.90)
  game.hole.x+=game.hole.vx*dt; game.hole.y+=game.hole.vy*dt;
  const mapClamp=game.isBoss?2400:2300;
  game.hole.x=Math.max(-mapClamp,Math.min(mapClamp,game.hole.x));
