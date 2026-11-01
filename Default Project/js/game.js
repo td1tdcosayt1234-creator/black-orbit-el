@@ -299,41 +299,41 @@ function update(dt){
  // BUG FIX: Clamp dt, prevent NaN
  if(isNaN(dt)||dt>0.05) dt=0.016;
 
- // ULTRA SLOW STABLE ZOOM + 150 LVL
- let currentLevel = game.level;
- let tZoom;
- // More steps, smaller drops
- if(currentLevel <= 2) tZoom = 1.0;
- else if(currentLevel <= 3) tZoom = 0.92;
- else if(currentLevel <= 4) tZoom = 0.85;
- else if(currentLevel <= 5) tZoom = 0.78;
- else if(currentLevel <= 6) tZoom = 0.70;
- else if(currentLevel <= 8) tZoom = 0.62;
- else if(currentLevel <= 10) tZoom = 0.54;
- else tZoom = 0.48;
- if(game.isBoss) tZoom = Math.min(tZoom, 0.60);
- game.targetZoom = tZoom;
- // EXTREMELY slow lerp
- let zoomDiff = game.targetZoom - game.zoom;
- let maxChange = 0.003; // ultra slow - 3x slower than before
- if(zoomDiff < -maxChange) zoomDiff = -maxChange;
- if(zoomDiff > maxChange) zoomDiff = maxChange;
- game.zoom += zoomDiff * 0.18; // very very slow
- game.zoom = Math.max(0.48, Math.min(1.0, game.zoom));
+  // ULTRA FAST STABLE ZOOM + 150 LVL (BUG FIX: 3x faster zoom transitions)
+  let currentLevel = game.level;
+  let tZoom;
+  // More steps, smaller drops
+  if(currentLevel <= 2) tZoom = 1.0;
+  else if(currentLevel <= 3) tZoom = 0.92;
+  else if(currentLevel <= 4) tZoom = 0.85;
+  else if(currentLevel <= 5) tZoom = 0.78;
+  else if(currentLevel <= 6) tZoom = 0.70;
+  else if(currentLevel <= 8) tZoom = 0.62;
+  else if(currentLevel <= 10) tZoom = 0.54;
+  else tZoom = 0.48;
+  if(game.isBoss) tZoom = Math.min(tZoom, 0.60);
+  game.targetZoom = tZoom;
+  // BUG FIX: 3x faster zoom lerp for smoother gameplay (0.003 -> 0.009)
+  let zoomDiff = game.targetZoom - game.zoom;
+  let maxChange = 0.009; // 3x faster zoom transitions
+  if(zoomDiff < -maxChange) zoomDiff = -maxChange;
+  if(zoomDiff > maxChange) zoomDiff = maxChange;
+  game.zoom += zoomDiff * 0.35; // faster interpolation (0.18 -> 0.35)
+  game.zoom = Math.max(0.48, Math.min(1.0, game.zoom));
 
  // FIXED: Mouse control with zoom compensation
- let mx=(game.mouse.x-innerWidth/2)/DPR/game.zoom+cam.x;
- let my=(game.mouse.y-innerHeight/2)/DPR/game.zoom+cam.y;
- let ix=0,iy=0;
- if(game.keys['w']||game.keys['ArrowUp']) iy=-1;
- if(game.keys['s']||game.keys['ArrowDown']) iy=1;
- if(game.keys['a']||game.keys['ArrowLeft']) ix=-1;
- if(game.keys['d']||game.keys['ArrowRight']) ix=1;
- if(ix||iy){ let l=Math.hypot(ix,iy)||1; ix/=l; iy/=l; mx=game.hole.x+ix*260; my=game.hole.y+iy*260; }
- let dx=mx-game.hole.x, dy=my-game.hole.y, dist=Math.hypot(dx,dy);
- let speed=440*(game.speedBoost>0?(game.speedMult||1.25):1);
- if(dist>5){ game.hole.vx+=dx/dist*speed*dt*4.2; game.hole.vy+=dy/dist*speed*dt*4.2; }
- game.hole.vx*=0.88; game.hole.vy*=0.88;
+  let mx=(game.mouse.x-innerWidth/2)/DPR/game.zoom+cam.x;
+  let my=(game.mouse.y-innerHeight/2)/DPR/game.zoom+cam.y;
+  let ix=0,iy=0;
+  if(game.keys['w']||game.keys['ArrowUp']) iy=-1;
+  if(game.keys['s']||game.keys['ArrowDown']) iy=1;
+  if(game.keys['a']||game.keys['ArrowLeft']) ix=-1;
+  if(game.keys['d']||game.keys['ArrowRight']) ix=1;
+  if(ix||iy){ let l=Math.hypot(ix,iy)||1; ix/=l; iy/=l; mx=game.hole.x+ix*260; my=game.hole.y+iy*260; }
+  let dx=mx-game.hole.x, dy=my-game.hole.y, dist=Math.hypot(dx,dy);
+  let speed=1100*(game.speedBoost>0?(game.speedMult||1.25):1); // BUG FIX: 2.5x faster movement (440->1100)
+  if(dist>5){ game.hole.vx+=dx/dist*speed*dt*8.5; game.hole.vy+=dy/dist*speed*dt*8.5; } // BUG FIX: 2x faster acceleration (4.2->8.5)
+  game.hole.vx*=0.92; game.hole.vy*=0.92; // BUG FIX: less friction for smoother movement (0.88->0.92)
  game.hole.x+=game.hole.vx*dt; game.hole.y+=game.hole.vy*dt;
  const mapClamp=game.isBoss?2400:2300;
  game.hole.x=Math.max(-mapClamp,Math.min(mapClamp,game.hole.x));
@@ -345,73 +345,73 @@ function update(dt){
    let el=document.getElementById('vacCd');
    if(el){ el.style.display=game.vacuumCd>0.05?'flex':'none'; if(game.vacuumCd>0) el.textContent=Math.ceil(game.vacuumCd).toString(); }
  }
- game.hole.r+=(game.hole.targetR-game.hole.r)*0.13;
- if(game.hole.r>140) game.hole.r=140;
- if(game.hole.targetR>140) game.hole.targetR=140;
- if(game.hole.pulse>0) game.hole.pulse=Math.max(0,game.hole.pulse-dt*3);
- cam.x+=(game.hole.x-cam.x)*0.13;
- cam.y+=(game.hole.y-cam.y)*0.13;
- if(game.shake>0) game.shake=Math.max(0,game.shake-dt*22);
+  game.hole.r+=(game.hole.targetR-game.hole.r)*0.18; // BUG FIX: Faster size growth (0.13->0.18)
+  if(game.hole.r>140) game.hole.r=140;
+  if(game.hole.targetR>140) game.hole.targetR=140;
+  if(game.hole.pulse>0) game.hole.pulse=Math.max(0,game.hole.pulse-dt*3);
+  cam.x+=(game.hole.x-cam.x)*0.22; // BUG FIX: Faster camera follow (0.13->0.22)
+  cam.y+=(game.hole.y-cam.y)*0.22;
+  if(game.shake>0) game.shake=Math.max(0,game.shake-dt*22);
 
- // PLANET SPAWN RATE: spawn new planets slowly
- spawnTimer+=dt;
- if(spawnTimer>3.2){
-   spawnTimer=0;
-   let aliveCount=game.objs.filter(o=>o.alive).length;
-   if(aliveCount<120){
-     const types=[{t:'person',s:10,c:1},{t:'hydrant',s:14,c:1},{t:'bench',s:18,c:1},{t:'tree',s:24,c:2},{t:'car',s:34,c:3},{t:'building',s:56,c:10}];
-     let toSpawn=aliveCount<60?3:aliveCount<90?2:1;
-     for(let s=0;s<toSpawn;s++){
-       let pick=types[Math.floor(Math.random()*types.length)];
-       let ang=Math.random()*6.28; let dist=800+Math.random()*400;
-       let x=game.hole.x+Math.cos(ang)*dist; let y=game.hole.y+Math.sin(ang)*dist;
-       x=Math.max(-mapClamp,Math.min(mapClamp,x)); y=Math.max(-mapClamp,Math.min(mapClamp,y));
-       if(game.objs.some(o=>o.alive&&Math.hypot(o.x-x,o.y-y)<50)) continue;
-       game.objs.push({x,y,baseR:pick.s+Math.random()*6,r:pick.s,type:pick.t,coinVal:pick.c,rot:Math.random()*6.28,wobble:Math.random()*10,beingSucked:false,suckT:0,scale:0.2,alive:true});
-     }
-   }
- }
+  // PLANET SPAWN RATE: spawn new planets faster for more dynamic gameplay
+  spawnTimer+=dt;
+  if(spawnTimer>2.4){ // BUG FIX: Faster spawn rate (3.2->2.4 seconds)
+    spawnTimer=0;
+    let aliveCount=game.objs.filter(o=>o.alive).length;
+    if(aliveCount<120){
+      const types=[{t:'person',s:10,c:1},{t:'hydrant',s:14,c:1},{t:'bench',s:18,c:1},{t:'tree',s:24,c:2},{t:'car',s:34,c:3},{t:'building',s:56,c:10}];
+      let toSpawn=aliveCount<60?3:aliveCount<90?2:1;
+      for(let s=0;s<toSpawn;s++){
+        let pick=types[Math.floor(Math.random()*types.length)];
+        let ang=Math.random()*6.28; let dist=800+Math.random()*400;
+        let x=game.hole.x+Math.cos(ang)*dist; let y=game.hole.y+Math.sin(ang)*dist;
+        x=Math.max(-mapClamp,Math.min(mapClamp,x)); y=Math.max(-mapClamp,Math.min(mapClamp,y));
+        if(game.objs.some(o=>o.alive&&Math.hypot(o.x-x,o.y-y)<50)) continue;
+        game.objs.push({x,y,baseR:pick.s+Math.random()*6,r:pick.s,type:pick.t,coinVal:pick.c,rot:Math.random()*6.28,wobble:Math.random()*10,beingSucked:false,suckT:0,scale:0.2,alive:true});
+      }
+    }
+  }
 
- // OBJECTS (em: magnet x2.6 pull during vacuum blast; suckR capped for balance)
- let em=game.magnet*(game.vacuumTimer>0?2.6:1);
- let suckR=Math.min(620,game.hole.r*2.9*em);
- for(let o of game.objs){
-   if(!o.alive) continue;
-   let d=Math.hypot(o.x-game.hole.x,o.y-game.hole.y);
-   let canEat=o.baseR<=game.hole.r*1.12;
-   if(d<suckR){
-     if(canEat){
-       o.beingSucked=true; o.suckT+=dt*3.8;
-       o.x+=(game.hole.x-o.x)*dt*5.2; o.y+=(game.hole.y-o.y)*dt*5.2;
-       o.scale=Math.max(0,1-o.suckT); o.wobble+=dt*26;
-       if(o.suckT>0.7){
+  // OBJECTS (em: magnet x2.6 pull during vacuum blast; suckR increased for better gameplay)
+  let em=game.magnet*(game.vacuumTimer>0?2.6:1);
+  let suckR=Math.min(720,game.hole.r*3.2*em); // BUG FIX: Increased suction range (620->720, 2.9->3.2)
+  for(let o of game.objs){
+    if(!o.alive) continue;
+    let d=Math.hypot(o.x-game.hole.x,o.y-game.hole.y);
+    let canEat=o.baseR<=game.hole.r*1.12;
+    if(d<suckR){
+      if(canEat){
+        o.beingSucked=true; o.suckT+=dt*4.5; // BUG FIX: Faster eating (3.8->4.5)
+        o.x+=(game.hole.x-o.x)*dt*6.2; o.y+=(game.hole.y-o.y)*dt*6.2; // BUG FIX: Faster pull (5.2->6.2)
+        o.scale=Math.max(0,1-o.suckT); o.wobble+=dt*26;
+        if(o.suckT>0.65){ // BUG FIX: Faster eat threshold (0.7->0.65)
          o.alive=false; game.score+=Math.floor(o.baseR*2); game.eaten++;
          trackMission('eaten',1); storage.totalEaten=storage.totalEaten+1;
          sfx(o.baseR>40?'big':'eat');
          let mult=game.hasDouble?2:1; let cv=o.coinVal*mult;
          spawnCoin(o.x,o.y,cv); game.coinsEarned+=cv;
-         game.hole.targetR=Math.min(140, game.hole.targetR+o.baseR*0.105);
-         game.hole.pulse=1;
-         if(o.baseR>40){
-           game.shake=Math.max(game.shake,o.baseR*0.22);
-           game.rings.push({x:game.hole.x,y:game.hole.y,r:game.hole.r,life:1,maxR:game.hole.r+70,color:'#ffffff'});
-           spawnFloat(o.x,o.y,'+'+Math.floor(o.baseR*2).toLocaleString('en-US'), '#ffffff');
-         }
-         for(let i=0;i<8;i++) game.particles.push({x:o.x,y:o.y,vx:(Math.random()-0.5)*360,vy:(Math.random()-0.5)*360,life:1,color:skinData(game.selectedSkin).particle,size:3+Math.random()*4});
-         if(game.particles.length>200) game.particles.splice(0,game.particles.length-200);
-         let fill=document.getElementById('sizeFill');
-         if(fill){ fill.classList.remove('pulse'); void fill.offsetWidth; fill.classList.add('pulse'); }
-         // LEVEL SYSTEM (fix: progress now actually counts + levels up)
-         game.totalEatenForLevel++;
-         if(game.totalEatenForLevel>=game.levelTarget){
-           game.totalEatenForLevel=0; game.level++;
-           game.levelTarget=Math.min(60,Math.round(game.levelTarget*1.4)+2);
-           game.hole.targetR=Math.min(140,game.hole.targetR+8);
-           game.rings.push({x:game.hole.x,y:game.hole.y,r:game.hole.r,life:1,maxR:game.hole.r+160,color:'#22d3ee'});
-           spawnFloat(game.hole.x,game.hole.y-34,'LEVEL UP • Lv '+game.level,'#22d3ee');
-           game.shake=Math.max(game.shake,10);
-           sfx('levelup'); trackMission('level',game.level);
-         }
+          game.hole.targetR=Math.min(140, game.hole.targetR+o.baseR*0.125); // BUG FIX: Faster growth (0.105->0.125)
+          game.hole.pulse=1;
+          if(o.baseR>40){
+            game.shake=Math.max(game.shake,o.baseR*0.22);
+            game.rings.push({x:game.hole.x,y:game.hole.y,r:game.hole.r,life:1,maxR:game.hole.r+70,color:'#ffffff'});
+            spawnFloat(o.x,o.y,'+'+Math.floor(o.baseR*2).toLocaleString('en-US'), '#ffffff');
+          }
+          for(let i=0;i<8;i++) game.particles.push({x:o.x,y:o.y,vx:(Math.random()-0.5)*360,vy:(Math.random()-0.5)*360,life:1,color:skinData(game.selectedSkin).particle,size:3+Math.random()*4});
+          if(game.particles.length>200) game.particles.splice(0,game.particles.length-200);
+          let fill=document.getElementById('sizeFill');
+          if(fill){ fill.classList.remove('pulse'); void fill.offsetWidth; fill.classList.add('pulse'); }
+          // LEVEL SYSTEM (fix: progress now actually counts + levels up faster)
+          game.totalEatenForLevel++;
+          if(game.totalEatenForLevel>=game.levelTarget){
+            game.totalEatenForLevel=0; game.level++;
+            game.levelTarget=Math.min(55,Math.round(game.levelTarget*1.35)+2); // BUG FIX: Slightly easier progression (60->55, 1.4->1.35)
+            game.hole.targetR=Math.min(140,game.hole.targetR+10); // BUG FIX: Bigger level-up bonus (8->10)
+            game.rings.push({x:game.hole.x,y:game.hole.y,r:game.hole.r,life:1,maxR:game.hole.r+160,color:'#22d3ee'});
+            spawnFloat(game.hole.x,game.hole.y-34,'LEVEL UP • Lv '+game.level,'#22d3ee');
+            game.shake=Math.max(game.shake,10);
+            sfx('levelup'); trackMission('level',game.level);
+          }
        }
      } else {
        let ang=Math.atan2(o.y-game.hole.y,o.x-game.hole.x);
@@ -422,13 +422,13 @@ function update(dt){
    }
  }
 
- // BOSS
- if(game.boss && game.boss.alive){
-   let b=game.boss;
-   b.attackCd-=dt;
-   let dToPlayer=Math.hypot(b.x-game.hole.x,b.y-game.hole.y);
-   if(dToPlayer>80){ let ang=Math.atan2(game.hole.y-b.y,game.hole.x-b.x); b.vx+=Math.cos(ang)*120*dt; b.vy+=Math.sin(ang)*120*dt; }
-   b.vx*=0.92; b.vy*=0.92; b.x+=b.vx*dt; b.y+=b.vy*dt;
+  // BOSS - BUG FIX: Faster boss movement (120->180)
+  if(game.boss && game.boss.alive){
+    let b=game.boss;
+    b.attackCd-=dt;
+    let dToPlayer=Math.hypot(b.x-game.hole.x,b.y-game.hole.y);
+    if(dToPlayer>80){ let ang=Math.atan2(game.hole.y-b.y,game.hole.x-b.x); b.vx+=Math.cos(ang)*180*dt; b.vy+=Math.sin(ang)*180*dt; } // 50% faster
+    b.vx*=0.92; b.vy*=0.92; b.x+=b.vx*dt; b.y+=b.vy*dt;
    b.x=Math.max(-mapClamp,Math.min(mapClamp,b.x)); b.y=Math.max(-mapClamp,Math.min(mapClamp,b.y));
    for(let o of game.objs){ if(!o.alive) continue; if(Math.hypot(o.x-b.x,o.y-b.y)<b.r*1.1 && o.baseR<=b.r*1.1){ o.alive=false; b.targetR=Math.min(145,b.targetR+o.baseR*0.04); } } // BUG FIX: cap boss growth so the fight stays winnable
    b.r+=(b.targetR-b.r)*0.08;
@@ -479,15 +479,15 @@ function update(dt){
    let isBiggerThanPlayer = ai.r > game.hole.r * 1.15;
    let dToPlayer = Math.hypot(game.hole.x-ai.x, game.hole.y-ai.y);
    
-   // If bigger than player, become predator - hunt player aggressively
-   if(isBiggerThanPlayer && dToPlayer < 600){
-     ai.state='predator';
-     // Fast chase
-     let predX=game.hole.x+game.hole.vx*0.5; let predY=game.hole.y+game.hole.vy*0.5;
-     let ang=Math.atan2(predY-ai.y, predX-ai.x);
-     let predatorSpeed = 580 + (ai.r - game.hole.r)*10; // faster if much bigger
-     ai.vx+=Math.cos(ang)*predatorSpeed*dt;
-     ai.vy+=Math.sin(ang)*predatorSpeed*dt;
+    // If bigger than player, become predator - hunt player aggressively
+    if(isBiggerThanPlayer && dToPlayer < 600){
+      ai.state='predator';
+      // BUG FIX: Faster AI chase speed (580->820)
+      let predX=game.hole.x+game.hole.vx*0.5; let predY=game.hole.y+game.hole.vy*0.5;
+      let ang=Math.atan2(predY-ai.y, predX-ai.x);
+      let predatorSpeed = 820 + (ai.r - game.hole.r)*12; // faster if much bigger
+      ai.vx+=Math.cos(ang)*predatorSpeed*dt;
+      ai.vy+=Math.sin(ang)*predatorSpeed*dt;
    } else {
      // Normal hunting: find best food, avoid bigger holes
      ai.state='hunt';
@@ -520,11 +520,11 @@ function update(dt){
      if(ai.r>game.hole.r*1.1 && dToPlayer<300){
        if(dToPlayer<bd){ best={x:game.hole.x,y:game.hole.y, isPlayer:true}; bd=dToPlayer; }
      }
-     if(best){
-       let ang=Math.atan2(best.y-ai.y,best.x-ai.x);
-       let speed = 380 + (ai.r*1.5);
-       ai.vx+=Math.cos(ang)*speed*dt;
-       ai.vy+=Math.sin(ang)*speed*dt;
+      if(best){
+        let ang=Math.atan2(best.y-ai.y,best.x-ai.x);
+        let speed = 520 + (ai.r*2); // BUG FIX: Faster AI hunting (380->520, multiplier 1.5->2)
+        ai.vx+=Math.cos(ang)*speed*dt;
+        ai.vy+=Math.sin(ang)*speed*dt;
      } else {
        // Wander if no target
        if(ai.huntTimer>2){
@@ -568,40 +568,53 @@ function update(dt){
    } else { if(dToPlayer>ai.r*1.5) game.beingEaten=Math.max(0,game.beingEaten-dt); }
  }
 
- // COINS - FIXED MAGNET
- for(let i=game.coins.length-1;i>=0;i--){
-   let c=game.coins[i];
-   if(!c||isNaN(c.x)) { game.coins.splice(i,1); continue; }
-   c.t+=dt; c.vy+=c.ay*dt; c.x+=c.vx*dt; c.y+=c.vy*dt; c.vx*=0.97;
-   if(c.t>0.35){
-     let ddx=game.hole.x-c.x, ddy=game.hole.y-c.y;
-     let dl=Math.hypot(ddx,ddy)||1;
-     c.vx+=ddx/dl*720*dt; c.vy+=ddy/dl*720*dt;
-     if(dl<game.hole.r*1.15){
-       game.coins.splice(i,1);
-       spawnFloat(game.hole.x,game.hole.y+18,'+1','#facc15', true); // small number
-       sfx('coin');
-       for(let k=0;k<3;k++) game.particles.push({x:game.hole.x,y:game.hole.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:1,color:'#facc15',size:3});
-     }
-   }
-   if(c.t>8) game.coins.splice(i,1);
- }
- // PARTICLES - FIXED LEAK
- for(let i=game.particles.length-1;i>=0;i--){
-   let p=game.particles[i];
-   if(!p||isNaN(p.x)) { game.particles.splice(i,1); continue; }
-   p.life-=dt*1.4; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.97; p.vy*=0.97;
-   if(p.life<=0) game.particles.splice(i,1);
- }
- for(let i=game.floatTexts.length-1;i>=0;i--){
-   let f=game.floatTexts[i]; f.life-=dt;
-   if(!f.small){ f.y+=f.vy*dt; f.scale=f.life; } else { f.y+=f.vy*dt*0.2; f.scale=1; } // +1 no animation, stays small
-   if(f.life<=0) game.floatTexts.splice(i,1);
- }
- for(let i=game.rings.length-1;i>=0;i--){
-   let r=game.rings[i]; r.life-=dt*1.25; r.r+=(r.maxR-r.r)*dt*3.2;
-   if(r.life<=0) game.rings.splice(i,1);
- }
+  // COINS - FIXED MAGNET + MEMORY LEAK PROTECTION
+  for(let i=game.coins.length-1;i>=0;i--){
+    let c=game.coins[i];
+    if(!c||isNaN(c.x)||isNaN(c.y)) { game.coins.splice(i,1); continue; } // BUG FIX: Check both x and y
+    c.t+=dt; c.vy+=c.ay*dt; c.x+=c.vx*dt; c.y+=c.vy*dt; c.vx*=0.97;
+    if(c.t>0.35){
+      let ddx=game.hole.x-c.x, ddy=game.hole.y-c.y;
+      let dl=Math.hypot(ddx,ddy)||1;
+      c.vx+=ddx/dl*720*dt; c.vy+=ddy/dl*720*dt;
+      if(dl<game.hole.r*1.15){
+        game.coins.splice(i,1);
+        spawnFloat(game.hole.x,game.hole.y+18,'+1','#facc15', true); // small number
+        sfx('coin');
+        for(let k=0;k<3;k++) game.particles.push({x:game.hole.x,y:game.hole.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,life:1,color:'#facc15',size:3});
+      }
+    }
+    if(c.t>8) game.coins.splice(i,1);
+  }
+  // BUG FIX: Aggressive memory leak prevention - cap arrays
+  if(game.coins.length>300) game.coins.splice(0, game.coins.length-300);
+  
+  // PARTICLES - FIXED LEAK + NaN PROTECTION
+  for(let i=game.particles.length-1;i>=0;i--){
+    let p=game.particles[i];
+    if(!p||isNaN(p.x)||isNaN(p.y)||isNaN(p.vx)||isNaN(p.vy)) { game.particles.splice(i,1); continue; } // BUG FIX: Full NaN check
+    p.life-=dt*1.4; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.97; p.vy*=0.97;
+    if(p.life<=0) game.particles.splice(i,1);
+  }
+  // BUG FIX: Hard cap particles to prevent memory explosion
+  if(game.particles.length>400) game.particles.splice(0, game.particles.length-400);
+  
+  for(let i=game.floatTexts.length-1;i>=0;i--){
+    let f=game.floatTexts[i]; 
+    if(!f||isNaN(f.x)||isNaN(f.y)) { game.floatTexts.splice(i,1); continue; } // BUG FIX: NaN check
+    f.life-=dt;
+    if(!f.small){ f.y+=f.vy*dt; f.scale=f.life; } else { f.y+=f.vy*dt*0.2; f.scale=1; } // +1 no animation, stays small
+    if(f.life<=0) game.floatTexts.splice(i,1);
+  }
+  // BUG FIX: Cap float texts
+  if(game.floatTexts.length>50) game.floatTexts.splice(0, game.floatTexts.length-50);
+  
+  for(let i=game.rings.length-1;i>=0;i--){
+    let r=game.rings[i]; 
+    if(!r||isNaN(r.x)||isNaN(r.y)||isNaN(r.r)) { game.rings.splice(i,1); continue; } // BUG FIX: NaN check
+    r.life-=dt*1.25; r.r+=(r.maxR-r.r)*dt*3.2;
+    if(r.life<=0) game.rings.splice(i,1);
+  }
 
  game.time-=dt;
  if(game.time<=0){ game.time=0; endGame(game.isBoss?'BOSS ESCAPED!':"TIME'S UP!"); return; }
@@ -650,16 +663,22 @@ function drawMinimap(){
 
 // Planet texture cache: one canvas per type+size (fix: no canvas allocation every frame)
 const texCache=new Map();
+const MAX_CACHE_SIZE=150; // BUG FIX: Limit cache size to prevent memory leak
 function getPlanetTex(type,r){
- const key=type+'_'+r;
- let tex=texCache.get(key);
- if(!tex){
-   tex=document.createElement('canvas'); tex.width=r*2+2; tex.height=r*2+2;
-   let oc=tex.getContext('2d'); oc.translate(r+1,r+1);
-   planetTexture(type,r,oc);
-   texCache.set(key,tex);
- }
- return tex;
+  const key=type+'_'+r;
+  let tex=texCache.get(key);
+  if(!tex){
+    tex=document.createElement('canvas'); tex.width=r*2+2; tex.height=r*2+2;
+    let oc=tex.getContext('2d'); oc.translate(r+1,r+1);
+    planetTexture(type,r,oc);
+    texCache.set(key,tex);
+    // BUG FIX: Clear oldest entries when cache grows too large
+    if(texCache.size>MAX_CACHE_SIZE){
+      const firstKey=texCache.keys().next().value;
+      texCache.delete(firstKey);
+    }
+  }
+  return tex;
 }
 function planetTexture(type,size,c){
  let g=c.createRadialGradient(-size*0.22,-size*0.22,size*0.2,0,0,size);
