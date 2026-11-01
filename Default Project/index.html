@@ -120,6 +120,27 @@ canvas{display:block;width:100vw;height:100vh}
 #sizeFill.pulse{animation:fillPulse .45s ease}
 
 
+/* ===== v2.3 ULTRA MENU ENHANCEMENTS ===== */
+@keyframes glow{0%,100%{box-shadow:0 6px 20px rgba(139,92,246,0.5)}50%{box-shadow:0 8px 30px rgba(139,92,246,0.8),0 0 40px rgba(139,92,246,0.4)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.btn-primary.btn-big{animation:glow 2s ease-in-out infinite}
+.stats-row .stat{animation:slideUp 0.5s ease-out;animation-fill-mode:both}
+.stats-row .stat:nth-child(1){animation-delay:0.1s}
+.stats-row .stat:nth-child(2){animation-delay:0.2s}
+.stats-row .stat:nth-child(3){animation-delay:0.3s}
+.stats-row .stat:nth-child(4){animation-delay:0.4s}
+.stat{transition:all 0.3s ease;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);transition:left 0.5s}
+.stat:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,0.4)}
+.stat:hover::before{left:100%}
+.btn{transition:all 0.2s ease;position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:rgba(255,255,255,0.3);transform:translate(-50%,-50%);transition:width 0.6s,height 0.6s}
+.btn:active::after{width:300px;height:300px}
+.menu-card{animation:slideUp 0.6s ease-out}
+.levelBadge{position:relative;overflow:hidden}
+.levelBadge::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent,rgba(255,255,255,0.1),transparent);animation:shine 3s infinite}
+@keyframes shine{to{transform:rotate(360deg)}}
+
 /* ===== v2.2 ENGAGEMENT UI ===== */
 .btn-ad{background:linear-gradient(90deg,#f59e0b,#ef4444);color:#fff;box-shadow:0 8px 24px rgba(245,158,11,.35)}
 .btn-ad:disabled{opacity:.5;cursor:default;filter:grayscale(.4)}
@@ -176,33 +197,67 @@ canvas{display:block;width:100vw;height:100vh}
 <div class="overlay" id="startOverlay" style="display:none">
   <div class="floatp fp1"></div><div class="floatp fp2"></div><div class="floatp fp3"></div><div class="floatp fp4"></div>
   <div class="card menu-card">
-    <div class="levelBadge">MARS STUDIO PRESENTS</div>
-    <div class="menu-eyebrow">A DEEP-SPACE DEVOURING CLASSIC</div>
-    <div style="font-size:12px;letter-spacing:6px;color:#8b5cf6;font-family:Orbitron">BLACK ORBIT</div>
-    <h1><span>PLANET</span><br>EATER</h1>
-    <p class="menu-tag">Grow your black hole, swallow whole cities and battle rival holes before time runs out.</p>
-    <div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:8px 10px;margin:12px 0;display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px;font-size:10px;color:#64748b"><span>🖱️ DRAG</span><span>⌨️ WASD</span><span>⚡ SPACE BOOST</span><span>🌪️ Q VACUUM</span></div>
-    <div class="stats-row">
-      <div class="stat"><b style="color:#facc15"><span id="menuCoins">0</span></b><span>🪙 COINS</span></div>
-      <div class="stat"><b style="color:#fff"><span id="bestScore">0</span></b><span>🏆 BEST</span></div>
-      <div class="stat"><b style="color:#8b5cf6"><span id="menuLevel">1</span></b><span>🕳️ LEVEL</span></div>
-      <div class="stat"><b style="color:#06b6d4"><span id="menuSkin">Classic</span></b><span>🎨 SKIN</span></div>
-    </div>
-    <div class="row">
-      <button class="btn btn-primary btn-big" id="btnPlay" onclick="startGame()">▶ PLAY</button>
-      <button class="btn btn-ghost" id="btnShop" onclick="openShop()">🛒 SHOP</button>
-      <button class="btn btn-boss" id="btnBoss" onclick="startBoss()">👹 BOSS</button>
+    <div class="levelBadge" style="animation:pulse 2s ease-in-out infinite">MARS STUDIO PRESENTS</div>
+    <div class="menu-eyebrow" style="text-transform:uppercase;opacity:0.7">🌌 A Deep-Space Devouring Adventure</div>
+    <div style="font-size:14px;letter-spacing:8px;color:#8b5cf6;font-family:Orbitron;margin:4px 0;text-shadow:0 0 20px rgba(139,92,246,0.5)">BLACK ORBIT</div>
+    <h1 style="margin:12px 0;line-height:1.1"><span style="font-size:44px">PLANET</span><br><span style="font-size:56px;text-shadow:0 0 30px rgba(139,92,246,0.4)">EATER</span></h1>
+    <p class="menu-tag" style="font-size:14px;line-height:1.5;max-width:480px;margin:12px auto">⚫ Grow your black hole from tiny to massive<br>🏙️ Swallow planets, cities, and everything in sight<br>⚔️ Battle rival holes and defeat the Boss<br>⏱️ Race against time before the universe escapes!</p>
+    
+    <!-- Enhanced Stats Row with Icons -->
+    <div class="stats-row" style="margin:20px 0 16px">
+      <div class="stat" style="background:linear-gradient(135deg,rgba(250,204,21,0.15),rgba(250,204,21,0.05));border-color:rgba(250,204,21,0.3)">
+        <b style="color:#facc15;font-size:22px"><span id="menuCoins">0</span></b>
+        <span style="font-size:10px;letter-spacing:1px">💰 COINS</span>
+      </div>
+      <div class="stat" style="background:linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04));border-color:rgba(255,255,255,0.2)">
+        <b style="color:#fff;font-size:22px"><span id="bestScore">0</span></b>
+        <span style="font-size:10px;letter-spacing:1px">🏆 HIGH SCORE</span>
+      </div>
+      <div class="stat" style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(139,92,246,0.05));border-color:rgba(139,92,246,0.3)">
+        <b style="color:#8b5cf6;font-size:22px"><span id="menuLevel">1</span></b>
+        <span style="font-size:10px;letter-spacing:1px">🕳️ HOLE LEVEL</span>
+      </div>
+      <div class="stat" style="background:linear-gradient(135deg,rgba(6,182,212,0.15),rgba(6,182,212,0.05));border-color:rgba(6,182,212,0.3)">
+        <b style="color:#06b6d4;font-size:14px"><span id="menuSkin">Classic</span></b>
+        <span style="font-size:10px;letter-spacing:1px">🎨 ACTIVE SKIN</span>
+      </div>
     </div>
     
-    <div class="row" style="margin-top:10px">
-      <button class="btn btn-ad" id="btnGift" onclick="watchGift()">🎁 WATCH • +150 🪙</button>
-      <button class="btn btn-ghost" id="btnDaily" onclick="claimDaily()">🎒 DAILY GIFT</button>
-      <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()">🔊 SOUND</button>
+    <!-- Enhanced Control Guide -->
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(6,182,212,0.08));border:1px solid rgba(139,92,246,0.3);border-radius:14px;padding:10px 12px;margin:16px 0;display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;font-size:11px;color:#e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,0.2)">
+      <span style="display:flex;align-items:center;gap:4px"><span style="font-size:16px">🖱️</span><b>DRAG</b></span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="font-size:16px">⌨️</span><b>WASD</b></span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="font-size:16px">⚡</span><b>SPACE BOOST</b></span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="font-size:16px">🌪️</span><b>Q VACUUM</b></span>
     </div>
-    <div class="lb-global" id="missionsBox" style="text-align:left"></div>
-    <div id="menuMeta"><span class="chipMini">🏆 <span id="achvCount">0/6</span></span><span class="chipMini">🔥 <span id="dailyStreak">0</span>-DAY STREAK</span><span class="chipMini">🕳️ LV <span id="metaLevel">1</span></span></div>
-    <div class="lb-global" id="globalLB"></div>
-    <div style="margin-top:10px;color:#475569;font-size:10px;letter-spacing:2px">MADE BY MARS STUDIO • PLAYGAMA READY • v2.3 ULTRA</div>
+    
+    <!-- Main Action Buttons with Better Styling -->
+    <div class="row" style="margin-top:18px">
+      <button class="btn btn-primary btn-big" id="btnPlay" onclick="startGame()" style="font-size:18px;padding:16px 40px;box-shadow:0 6px 20px rgba(139,92,246,0.5);border:2px solid rgba(255,255,255,0.2);font-weight:800">▶ PLAY NOW</button>
+    </div>
+    <div class="row" style="margin-top:12px;gap:8px">
+      <button class="btn btn-ghost" id="btnShop" onclick="openShop()" style="flex:1;font-weight:700;font-size:13px;border:2px solid rgba(255,255,255,0.15)">🛒 SHOP</button>
+      <button class="btn btn-boss" id="btnBoss" onclick="startBoss()" style="flex:1;font-weight:700;font-size:13px;box-shadow:0 4px 16px rgba(239,68,68,0.4);border:2px solid rgba(255,255,255,0.2)">👹 BOSS BATTLE</button>
+    </div>
+    
+    <!-- Rewards Section -->
+    <div class="row" style="margin-top:14px;gap:6px">
+      <button class="btn btn-ad" id="btnGift" onclick="watchGift()" style="font-size:12px;padding:10px 16px;font-weight:700">🎁 FREE +150 🪙</button>
+      <button class="btn btn-ghost" id="btnDaily" onclick="claimDaily()" style="font-size:12px;padding:10px 16px;font-weight:700">🎒 DAILY GIFT</button>
+      <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()" style="font-size:12px;padding:10px 16px;font-weight:700">🔊 SOUND</button>
+    </div>
+    
+    <!-- Missions -->
+    <div class="lb-global" id="missionsBox" style="text-align:left;margin-top:16px"></div>
+    
+    <!-- Meta Stats with Better Design -->
+    <div id="menuMeta" style="margin-top:14px"><span class="chipMini" style="background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.3)">🏆 <span id="achvCount">0/6</span></span><span class="chipMini" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3)">🔥 <span id="dailyStreak">0</span>-DAY STREAK</span><span class="chipMini" style="background:rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.3)">🕳️ LV <span id="metaLevel">1</span></span></div>
+    
+    <!-- Leaderboard -->
+    <div class="lb-global" id="globalLB" style="margin-top:14px"></div>
+    
+    <!-- Footer with Glow Effect -->
+    <div style="margin-top:16px;color:#64748b;font-size:10px;letter-spacing:3px;text-shadow:0 0 10px rgba(139,92,246,0.3)">MADE BY <span style="color:#8b5cf6;font-weight:700">MARS STUDIO</span> • PLAYGAMA READY • v2.3 ULTRA</div>
   </div>
 </div>
 
