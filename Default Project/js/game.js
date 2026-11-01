@@ -4,6 +4,20 @@ const BOOT={bridgeReady:false,storageLoaded:false,language:'en',audioEnabled:tru
 const K_SAVE='black_orbit_save_v23'; // BUG FIX: Updated version for new optimizations
 const LOCAL_SAVE='black_orbit_save_v23';
 
+// Game mode state
+let selectedGameMode='classic'; // 'classic' or 'infinity'
+
+// Mode selection function
+function selectMode(mode){
+  selectedGameMode=mode;
+  const classicBtn=document.getElementById('modeClassic');
+  const infinityBtn=document.getElementById('modeInfinity');
+  if(classicBtn) classicBtn.classList.toggle('selected', mode==='classic');
+  if(infinityBtn) infinityBtn.classList.toggle('selected', mode==='infinity');
+  sfx('click');
+  console.log('🎮 Mode selected:', mode);
+}
+
 function saveDefault(){ return {coins:0,skins:['classic'],abs:[],skin:'classic',best:0,level:1,lb:[],daily:null,missions:null,achv:[],sound:true,totalEaten:0,gamesPlayed:0,aiKills:0}; }
 let saveState=saveDefault();
 
@@ -280,8 +294,8 @@ function createWorld(isBoss){
 }
 
 function startGame(){ 
-  console.log('▶️ Starting normal game');
-  platformMsg('game_mode_selected', {mode: 'normal'});
+  console.log('▶️ Starting normal game, mode:', selectedGameMode);
+  platformMsg('game_mode_selected', {mode: selectedGameMode});
   initGame(false); 
 }
 function startBoss(){ 
@@ -298,11 +312,18 @@ function initGame(isBoss){
   let isDouble=storage.abs.includes('double');
   let baseTime=isBoss?180:120;
   
-  console.log('🎮 Game init:', {isBoss, extraTime, isGrowth, isMagnet, isDouble});
+  // BUG FIX: Infinity mode - no time limit
+  let isInfinityMode = !isBoss && selectedGameMode==='infinity';
+  if(isInfinityMode) {
+    baseTime=9999; // Effectively infinite
+    extraTime=0;
+  }
+  
+  console.log('🎮 Game init:', {isBoss, mode: isInfinityMode?'infinity':'timed', extraTime, isGrowth, isMagnet, isDouble});
   
   // RESET ALL STATE - BUG FIX: clear arrays
   game={
-    running:true,isBoss:isBoss,
+    running:true,isBoss:isBoss,isInfinityMode:isInfinityMode,
     hole:{x:0,y:0,r:isGrowth?34:28,targetR:isGrowth?34:28,vx:0,vy:0,pulse:0},
     level:1, levelProgress:0, levelTarget:10, totalEatenForLevel:0,
     mouse:{x:innerWidth/2,y:innerHeight/2,down:false},
@@ -326,7 +347,7 @@ function initGame(isBoss){
   document.getElementById('bossHp').style.width='100%';
   document.getElementById('bossPct').textContent='100%';
   // BUG FIX: 'boss' mission must count on DEFEAT, not on starting the boss run
-  platformMsg('level_started',{world:isBoss?'boss_hunt':'planet_city',level:'1'});
+  platformMsg('level_started',{world:isBoss?'boss_hunt':(isInfinityMode?'infinity':'planet_city'),level:'1'});
   buildAbilities();
   rafId=requestAnimationFrame(loop);
   console.log('✅ Game started');
@@ -708,12 +729,30 @@ function update(dt){
     if(r.life<=0) game.rings.splice(i,1);
   }
 
- game.time-=dt;
- if(game.time<=0){ game.time=0; endGame(game.isBoss?'BOSS ESCAPED!':"TIME'S UP!"); return; }
+  game.time-=dt;
+  // BUG FIX: Infinity mode - don't end game on time up
+  if(game.time<=0 && !game.isInfinityMode){ 
+    game.time=0; 
+    endGame(game.isBoss?'BOSS ESCAPED!':"TIME'S UP!"); 
+    return; 
+  }
+  // Keep time at a reasonable value in infinity mode
+  if(game.isInfinityMode && game.time<9000) game.time=9000;
 
- // UI UPDATE - BUG FIX: Check elements exist
- let scoreEl=document.getElementById('score'); if(scoreEl) scoreEl.textContent=game.score.toLocaleString('en-US');
- let timerEl=document.getElementById('timer'); if(timerEl){ let pill=timerEl.closest('.pill'); if(pill) pill.style.color=game.time<15?'#ef4444':'#fff'; timerEl.textContent=String(Math.floor(game.time/60)).padStart(2,'0')+':'+String(Math.floor(game.time%60)).padStart(2,'0'); }
+  // UI UPDATE - BUG FIX: Check elements exist
+  let scoreEl=document.getElementById('score'); if(scoreEl) scoreEl.textContent=game.score.toLocaleString('en-US');
+  let timerEl=document.getElementById('timer'); 
+  if(timerEl){ 
+    let pill=timerEl.closest('.pill'); 
+    if(game.isInfinityMode){
+      // Show infinity symbol for infinity mode
+      timerEl.textContent='∞';
+      if(pill) pill.style.color='#06b6d4';
+    } else {
+      if(pill) pill.style.color=game.time<15?'#ef4444':'#fff'; 
+      timerEl.textContent=String(Math.floor(game.time/60)).padStart(2,'0')+':'+String(Math.floor(game.time%60)).padStart(2,'0');
+    }
+  }
  let coinsEl=document.getElementById('coins'); if(coinsEl) coinsEl.textContent=game.coinsEarned.toLocaleString('en-US');
  let levelEl=document.getElementById('level'); if(levelEl) levelEl.textContent=String(game.level);
  let sizeFill=document.getElementById('sizeFill'); if(sizeFill){ let prog=game.levelTarget>0?(game.totalEatenForLevel/game.levelTarget)*100:0; sizeFill.style.width=Math.min(100,prog)+'%'; }
