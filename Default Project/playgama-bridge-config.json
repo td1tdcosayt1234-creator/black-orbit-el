@@ -1,4 +1,14 @@
 {
+  "version": "2.4.1",
+  "game": {
+    "name": "Black Orbit: Planet Eater",
+    "shortName": "Black Orbit",
+    "description": "Grow your black hole and devour everything!",
+    "category": "arcade",
+    "tags": ["black hole", "arcade", "action", "io game", "space", "battle", "boss", "mobile"],
+    "orientation": "any",
+    "languages": ["en", "ru", "es", "pt", "tr"]
+  },
   "advertisement": {
     "minimumDelayBetweenInterstitial": 60,
     "interstitial": {
@@ -7,10 +17,12 @@
       "placementFallback": "game_over",
       "placements": [
         {
-          "id": "game_over"
+          "id": "game_over",
+          "description": "Show when game ends"
         },
         {
-          "id": "return_menu"
+          "id": "return_menu",
+          "description": "Show when returning to menu"
         }
       ]
     },
@@ -20,20 +32,138 @@
       "placementFallback": "gift",
       "placements": [
         {
-          "id": "gift"
+          "id": "gift",
+          "description": "Free coins reward",
+          "reward": {
+            "type": "coins",
+            "amount": 150
+          }
         },
         {
-          "id": "double_coins"
+          "id": "double_coins",
+          "description": "Double end-game coins",
+          "reward": {
+            "type": "multiplier",
+            "value": 2
+          }
         },
         {
-          "id": "revive"
+          "id": "revive",
+          "description": "Continue game with +10s",
+          "reward": {
+            "type": "time",
+            "amount": 10
+          }
         }
       ]
     }
   },
   "leaderboards": [
     {
-      "id": "black_orbit_best"
+      "id": "black_orbit_best",
+      "name": "High Scores",
+      "type": "numeric",
+      "order": "DESC"
+    },
+    {
+      "id": "black_orbit_infinity",
+      "name": "Infinity Mode",
+      "type": "numeric",
+      "order": "DESC"
     }
-  ]
+  ],
+  "achievements": [
+    {
+      "id": "first_orbit",
+      "name": "First Orbit",
+      "description": "Play your first game"
+    },
+    {
+      "id": "planet_eater",
+      "name": "Planet Eater",
+      "description": "Eat 50+ objects in one game"
+    },
+    {
+      "id": "supernova",
+      "name": "Supernova",
+      "description": "Score 5000+ points"
+    },
+    {
+      "id": "rival_hunter",
+      "name": "Rival Hunter",
+      "description": "Eat 10+ rival holes (total)"
+    },
+    {
+      "id": "boss_slayer",
+      "name": "Boss Slayer",
+      "description": "Defeat the Boss"
+    },
+    {
+      "id": "filthy_rich",
+      "name": "Filthy Rich",
+      "description": "Collect 2000+ coins"
+    }
+  ],
+  "social": {
+    "share": {
+      "enabled": true,
+      "text": "I just scored {score} in Black Orbit! Can you beat it? 🕳️",
+      "hashtags": ["BlackOrbit", "PlayGama", "IO"]
+    }
+  },
+  "analytics": {
+    "events": [
+      "game_mode_selected",
+      "level_started",
+      "level_completed",
+      "level_failed",
+      "boss_defeated",
+      "shop_opened",
+      "item_purchased",
+      "ability_used"
+    ]
+  },
+  "mcp": {
+    "enabled": true,
+    "version": "1.0",
+    "capabilities": [
+      "ai_assistance",
+      "smart_difficulty",
+      "personalized_content",
+      "analytics"
+    ],
+    "endpoints": {
+      "assistance": "/mcp/assist",
+      "analytics": "/mcp/analytics",
+      "personalization": "/mcp/personalize"
+    },
+    "features": {
+      "aiHints": {
+        "enabled": true,
+        "description": "AI-powered gameplay hints"
+      },
+      "adaptiveDifficulty": {
+        "enabled": true,
+        "description": "Dynamic difficulty adjustment based on player skill"
+      },
+      "contentRecommendations": {
+        "enabled": true,
+        "description": "Personalized skin and ability recommendations"
+      },
+      "smartTutorial": {
+        "enabled": true,
+        "description": "Context-aware tutorial system"
+      }
+    }
+  },
+  "performance": {
+    "targetFPS": 60,
+    "adaptiveQuality": true,
+    "lowEndDeviceSupport": true
+  },
+  "accessibility": {
+    "colorBlindMode": false,
+    "reducedMotion": false,
+    "screenReaderSupport": false
+  }
 }

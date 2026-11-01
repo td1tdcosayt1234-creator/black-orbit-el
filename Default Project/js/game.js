@@ -1,8 +1,82 @@
-// ================= PLAYGAMA BRIDGE CORE (v2.3 - ENHANCED) =================
+// ================= PLAYGAMA BRIDGE CORE (v2.4 - MCP ENHANCED) =================
 // Boot order per Playgama required steps: bridge.initialize() waits before the game restores state.
-const BOOT={bridgeReady:false,storageLoaded:false,language:'en',audioEnabled:true,forcedPause:false,rewardedOk:false,rewardedCb:null,gameReadySent:false,adShowing:false,interstitialCooldown:0};
-const K_SAVE='black_orbit_save_v23'; // BUG FIX: Updated version for new optimizations
-const LOCAL_SAVE='black_orbit_save_v23';
+const BOOT={bridgeReady:false,storageLoaded:false,language:'en',audioEnabled:true,forcedPause:false,rewardedOk:false,rewardedCb:null,gameReadySent:false,adShowing:false,interstitialCooldown:0,mcpEnabled:false};
+const K_SAVE='black_orbit_save_v24'; // BUG FIX: Updated version for MCP support
+const LOCAL_SAVE='black_orbit_save_v24';
+
+// ================= MCP (Model Context Protocol) INTEGRATION =================
+const MCP = {
+  enabled: false,
+  capabilities: [],
+  
+  // Initialize MCP if available
+  init: function() {
+    if(typeof bridge==='undefined'||!bridge) return false;
+    try {
+      // Check if Playgama supports MCP
+      if(bridge.mcp && bridge.mcp.isSupported) {
+        this.enabled = true;
+        this.capabilities = bridge.mcp.getCapabilities() || [];
+        BOOT.mcpEnabled = true;
+        console.log('🤖 MCP Initialized:', this.capabilities);
+        return true;
+      }
+    } catch(e) {
+      console.log('⚠️ MCP not available:', e.message);
+    }
+    return false;
+  },
+  
+  // AI-powered gameplay hints
+  getHint: function(context) {
+    if(!this.enabled || !this.capabilities.includes('ai_assistance')) return null;
+    try {
+      return bridge.mcp.getHint({
+        score: context.score,
+        level: context.level,
+        difficulty: context.difficulty
+      });
+    } catch(e) {
+      return null;
+    }
+  },
+  
+  // Adaptive difficulty adjustment
+  adjustDifficulty: function(playerStats) {
+    if(!this.enabled || !this.capabilities.includes('smart_difficulty')) return 1.0;
+    try {
+      return bridge.mcp.getDifficultyMultiplier({
+        gamesPlayed: playerStats.gamesPlayed,
+        averageScore: playerStats.averageScore,
+        winRate: playerStats.winRate
+      });
+    } catch(e) {
+      return 1.0;
+    }
+  },
+  
+  // Personalized content recommendations
+  getRecommendations: function(userProfile) {
+    if(!this.enabled || !this.capabilities.includes('personalized_content')) return [];
+    try {
+      return bridge.mcp.getRecommendations({
+        coins: userProfile.coins,
+        ownedSkins: userProfile.skins,
+        playStyle: userProfile.playStyle
+      });
+    } catch(e) {
+      return [];
+    }
+  },
+  
+  // Track analytics for MCP learning
+  trackEvent: function(eventName, data) {
+    if(!this.enabled) return;
+    try {
+      bridge.mcp.trackEvent(eventName, data);
+    } catch(e) {}
+  }
+};
 
 // Game mode state
 let selectedGameMode='classic'; // 'classic' or 'infinity'
@@ -16,6 +90,7 @@ function selectMode(mode){
   if(infinityBtn) infinityBtn.classList.toggle('selected', mode==='infinity');
   sfx('click');
   console.log('🎮 Mode selected:', mode);
+  MCP.trackEvent('mode_selected', {mode});
 }
 
 function saveDefault(){ return {coins:0,skins:['classic'],abs:[],skin:'classic',best:0,level:1,lb:[],daily:null,missions:null,achv:[],sound:true,totalEaten:0,gamesPlayed:0,aiKills:0}; }
